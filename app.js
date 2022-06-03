@@ -1,5 +1,4 @@
 const express = require("express");
-const path = require("path");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const Task = require("./models/task");
@@ -14,9 +13,12 @@ db.once("open", () => {
 
 const app = express();
 
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
+//parsear json
+app.use(express.json());
+//recibir parametros a traves de query
+app.use(express.urlencoded({ extended: false }));
 
+//Pagina de inicio, lista todas las tareas
 app.get("/", async (req, res) => {
   try {
     const task = await Task.find({});
@@ -26,13 +28,49 @@ app.get("/", async (req, res) => {
   }
 });
 
-app.get("/makeTask", async (req, res) => {
-  const task = new Task({
-    title: "Programar esta pagina",
-    state: "en progreso",
-  });
-  await task.save();
-  res.send(task);
+//muestra una tarea especifica
+app.get("/:id", async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    return res.json({ task });
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+//Crea una nueva tarea
+app.post("/new", async (req, res) => {
+  try {
+    const task = new Task(req.body);
+    await task.save();
+    res.redirect(`/${task._id}`);
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+//editar una tarea especifica
+app.put("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Task.findByIdAndUpdate(id, {
+      ...req.body,
+    });
+    res.redirect(`/${id}`);
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+//eliminar una tarea especifica
+app.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Task.findByIdAndDelete(id);
+    res.redirect("/");
+  } catch (err) {
+    console.log(err);
+  }
 });
 
 app.listen("3000", () => {
